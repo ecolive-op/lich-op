@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Lịch trực OP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16161C;
+    --bg-soft: #1B1C24;
+    --panel: #20212B;
+    --panel-2: #262833;
+    --line: #34363F;
+    --text: #F3F4F8;
+    --text-dim: #9EA1B0;
+    --text-faint: #6C6F7E;
+    --live: #FF5470;
+    --live-dim: #4A2230;
+    --amber: #FFB454;
+    --amber-dim: #4A3A20;
+    --teal: #3FD9B5;
+    --teal-dim: #1E4A40;
+    --radius: 14px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display: 'Space Grotesk', system-ui, sans-serif;
+    --body: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top, #1c1d27 0%, #15161c 55%, #121319 100%);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app{ max-width: 640px; margin: 0 auto; padding: 0 16px 100px; }
+
+  /* ===== HEADER ===== */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 2px 10px;
+    position: sticky; top:0; z-index: 30;
+    background: linear-gradient(to bottom, rgba(18,19,25,0.97) 70%, rgba(18,19,25,0));
+    backdrop-filter: blur(6px);
+  }
+  .brand{ display:flex; align-items:center; gap:9px; }
+  .brand .dot{
+    width:9px; height:9px; border-radius:50%; background: var(--live);
+    box-shadow: 0 0 0 0 rgba(255,84,112,.6);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(255,84,112,.55); }
+    70%{ box-shadow: 0 0 0 7px rgba(255,84,112,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(255,84,112,0); }
+  }
+  .brand h1{
+    font-family: var(--display); font-size: 17px; font-weight: 700;
+    margin:0; letter-spacing:0.2px;
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:6px; }
+  .icon-btn{
+    width:36px; height:36px; border-radius:10px; border:1px solid var(--line);
+    background: var(--panel); color: var(--text-dim);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .icon-btn:hover{ background: var(--panel-2); color: var(--text); }
+  .icon-btn svg{ width:17px; height:17px; }
+  .icon-btn.spin svg{ animation: spin 1s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .sync-line{
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+    display:flex; align-items:center; gap:6px; padding: 0 2px 14px;
+  }
+  .sync-line .sep{ opacity:.4; }
+  .sync-line.err{ color: var(--live); }
+
+  /* ===== NAME PICKER ===== */
+  .picker-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    overflow: visible;
+  }
+  .picker-label{
+    font-size: 12px; color: var(--text-dim); margin: 0 0 9px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .mode-toggle{
+    display:flex; gap:6px; background: var(--bg-soft); border-radius:10px;
+    padding:4px; margin-bottom:14px;
+  }
+  .mode-btn{
+    flex:1; border:none; background:transparent; color: var(--text-dim);
+    font-family: var(--body); font-weight:600; font-size:13px;
+    padding: 9px 6px; border-radius:8px; cursor:pointer; transition: all .15s ease;
+  }
+  .mode-btn.active{ background: var(--panel-2); color: var(--text); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset; }
+  .search-wrap{ position: relative; overflow: visible; }
+  .search-input{
+    width:100%; background: var(--bg-soft); border: 1.5px solid var(--line);
+    border-radius: 10px; padding: 13px 14px; font-size: 16px; color: var(--text);
+    font-family: var(--body); font-weight: 500;
+    outline:none; transition: border-color .15s;
+  }
+  .search-input:focus{ border-color: var(--teal); }
+  .search-input::placeholder{ color: var(--text-faint); font-weight:400; }
+  .clear-btn{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:28px;height:28px;border-radius:50%; border:none; background:transparent;
+    color: var(--text-faint); cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  .clear-btn.show{ display:flex; }
+  .clear-btn:hover{ background: var(--panel-2); color:var(--text); }
+
+  .dropdown{
+    position:absolute; left:0; right:0; top: calc(100% + 6px);
+    background: var(--panel-2); border:1px solid var(--line); border-radius: 10px;
+    max-height: 280px; overflow-y:auto; z-index: 200;
+    box-shadow: 0 14px 32px rgba(0,0,0,.45);
+    display:none;
+  }
+  .dropdown.show{ display:block; }
+  .dd-item{
+    padding: 12px 14px; cursor:pointer; font-size:15px; font-weight:500;
+    border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center;
+  }
+  .dd-item:last-child{ border-bottom:none; }
+  .dd-item:hover, .dd-item.hot{ background: rgba(63,217,181,0.08); }
+  .dd-item small{ font-family: var(--mono); color: var(--text-faint); font-size:11px; font-weight:400; }
+  .dd-empty{ padding: 16px; color: var(--text-faint); font-size: 14px; text-align:center; }
+
+  .current-pill{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .current-pill .name{
+    font-family: var(--display); font-size: 21px; font-weight:700;
+  }
+  .switch-link{
+    font-size: 13px; color: var(--teal); cursor:pointer; font-weight:600;
+    background:none; border:none; padding:6px 0;
+  }
+  .switch-link:hover{ text-decoration: underline; }
+
+  /* ===== SUMMARY STRIP ===== */
+  .summary{
+    display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 16px;
+  }
+  .summary .stat{
+    background: var(--panel); border:1px solid var(--line); border-radius: 12px;
+    padding: 11px 10px; text-align:center;
+  }
+  .summary .stat .num{
+    font-family: var(--mono); font-size: 19px; font-weight:600; color: var(--text);
+    display:block;
+  }
+  .summary .stat .lbl{
+    font-size: 10.5px; color: var(--text-faint); text-transform:uppercase; letter-spacing:.04em;
+    margin-top: 2px; display:block;
+  }
+
+  /* ===== TIMELINE ===== */
+  .timeline{ position:relative; }
+  .day-group{ margin-bottom: 18px; position:relative; }
+  .day-head{
+    display:flex; align-items:baseline; gap:8px; margin-bottom:8px; padding-left: 2px;
+  }
+  .day-head .wd{
+    font-family: var(--display); font-size: 14px; font-weight:700; color: var(--text);
+  }
+  .day-head .dd{
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+  }
+  .day-head .today-badge{
+    font-size:10px; font-weight:700; letter-spacing:.05em; color:#16161C;
+    background: var(--live); padding: 2px 7px; border-radius: 20px;
+    text-transform:uppercase;
+  }
+  .day-head .tick{ flex:1; height:1px; background: var(--line); }
+
+  .shift-card{
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 8px; position:relative; overflow:hidden;
+  }
+  .shift-card.today{
+    border-color: rgba(255,84,112,0.55);
+    box-shadow: 0 0 0 1px rgba(255,84,112,0.18), 0 6px 18px rgba(255,84,112,0.08);
+  }
+  .shift-card.leave{
+    background: var(--panel); border-style:dashed;
+  }
+  .shift-card::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background: var(--teal);
+  }
+  .shift-card.today::before{ background: var(--live); }
+  .shift-card.leave::before{ background: var(--amber); }
+
+  .sc-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .sc-brand{
+    font-family: var(--display); font-size: 16px; font-weight:700; color:var(--text);
+    line-height:1.25;
+  }
+  .sc-tags{ display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+  .tag{
+    font-family: var(--mono); font-size: 10px; font-weight:600; color: var(--text-dim);
+    background: var(--bg-soft); border:1px solid var(--line); padding: 2px 7px;
+    border-radius: 6px; white-space:nowrap;
+  }
+  .sc-time{
+    font-family: var(--mono); font-size: 14px; color: var(--teal); margin-top:7px;
+    font-weight:600; letter-spacing:.01em;
+  }
+  .sc-meta{
+    margin-top: 6px; font-size: 12.5px; color: var(--text-dim); display:flex; flex-wrap:wrap; gap:10px;
+  }
+  .sc-meta span{ display:flex; align-items:center; gap:4px; }
+  .sc-meta svg{ width:12px; height:12px; opacity:.7; flex-shrink:0; }
+  .sc-note{
+    margin-top:8px; font-size:12px; color: var(--amber); background: var(--amber-dim);
+    padding: 6px 9px; border-radius: 7px; line-height:1.4;
+  }
+  .leave-label{
+    font-family:var(--display); font-weight:700; font-size:15px; color: var(--amber);
+    display:flex; align-items:center; gap:7px;
+  }
+
+  /* ===== EMPTY / LOADING / ERROR STATES ===== */
+  .state-box{
+    text-align:center; padding: 50px 20px; color: var(--text-dim);
+  }
+  .state-box .big{ font-size: 36px; margin-bottom: 10px; }
+  .state-box h3{ font-family: var(--display); color: var(--text); margin: 0 0 6px; font-size:16px; }
+  .state-box p{ font-size: 13.5px; color: var(--text-faint); margin:0; line-height:1.5; }
+  .state-box button{ margin-top: 16px; }
+
+  .btn{
+    font-family: var(--body); font-weight:600; font-size: 13.5px;
+    background: var(--teal); color: #0E1714; border:none; border-radius: 10px;
+    padding: 11px 8px; cursor:pointer; transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .btn:hover{ opacity:.88; }
+  .btn.ghost{
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+  }
+  .btn.danger{ background: var(--live); color:#1a0d10; }
+
+  /* ===== FOOTER ACTIONS ===== */
+  .footer-actions{
+    display:flex; gap:8px;
+    position: fixed; left:0; right:0; bottom:0; z-index: 50;
+    max-width: 640px; margin: 0 auto;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(18,19,25,0.99) 65%, rgba(18,19,25,0));
+    backdrop-filter: blur(6px);
+  }
+  .footer-actions .btn{ flex:1; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .timeline-spacer{ height: 84px; }
+
+  /* ===== SETTINGS MODAL ===== */
+  .overlay{
+    position: fixed; inset:0; background: rgba(10,10,13,0.72); backdrop-filter: blur(3px);
+    display:none; align-items:flex-end; justify-content:center; z-index: 100;
+  }
+  .overlay.show{ display:flex; }
+  .sheet{
+    background: var(--bg-soft); width:100%; max-width: 640px; border-radius: 18px 18px 0 0;
+    padding: 20px 18px 26px; max-height: 86vh; overflow-y:auto;
+    border-top: 1px solid var(--line); border-left:1px solid var(--line); border-right:1px solid var(--line);
+  }
+  .sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .sheet-head h2{ font-family:var(--display); font-size:16px; margin:0; }
+  .field-label{ font-size:11.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; font-weight:600; margin: 14px 0 6px; }
+  .field-input{
+    width:100%; background: var(--panel); border:1.5px solid var(--line); border-radius:10px;
+    padding:11px 12px; color:var(--text); font-size:14px; font-family: var(--body);
+    outline:none;
+  }
+  .field-input:focus{ border-color: var(--teal); }
+  .tab-row{
+    display:flex; align-items:center; gap:8px; background: var(--panel);
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;
+  }
+  .tab-row .tinfo{ flex:1; min-width:0; }
+  .tab-row .tname{ font-size:13.5px; font-weight:600; }
+  .tab-row .tgid{ font-family:var(--mono); font-size:10.5px; color:var(--text-faint); }
+  .tab-row .rm{
+    background:none; border:none; color: var(--text-faint); cursor:pointer; padding:6px;
+  }
+  .tab-row .rm:hover{ color: var(--live); }
+  .help-text{ font-size:12px; color: var(--text-faint); line-height:1.55; margin-top:6px;}
+  .help-text code{ background: var(--panel-2); padding:1px 5px; border-radius:5px; font-family:var(--mono); font-size:11px;}
+  hr.sep{ border:none; border-top:1px solid var(--line); margin: 18px 0; }
+
+  ::-webkit-scrollbar{ width:6px; height:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:10px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .brand .dot{ animation:none; }
+    .icon-btn.spin svg{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Lịch trực OP</h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="refreshBtn" title="Đồng bộ lại">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.36M21 4v5h-5"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Cài đặt">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="sync-line" id="syncLine">Đang đồng bộ…</div>
+
+  <!-- Name picker -->
+  <div class="picker-card" id="pickerCard">
+    <div id="pickerInner"></div>
+  </div>
+
+  <div id="summaryBox"></div>
+  <div id="contentBox"></div>
+</div>
+
+<!-- Settings Sheet -->
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>Cài đặt nguồn dữ liệu</h2>
+      <button class="icon-btn" id="closeSettings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="field-label">Các tab tháng đang theo dõi</div>
+    <div id="tabsList"></div>
+
+    <hr class="sep">
+    <div class="field-label">Thêm tab tháng mới</div>
+    <input class="field-input" id="newTabUrl" placeholder="Dán link Google Sheet của tab đó (có chứa gid=...)">
+    <div style="height:8px"></div>
+    <input class="field-input" id="newTabLabel" placeholder="Tên gợi nhớ, VD: Tháng 8.2026">
+    <div class="help-text">
+      Vào tab tháng mới trên Google Sheet → copy link trên thanh địa chỉ (chứa <code>gid=123456</code>) → dán vào đây → bấm Thêm. App sẽ tự kéo dữ liệu tab đó mỗi lần mở.
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn" id="addTabBtn" style="width:100%">+ Thêm tab</button>
+
+    <hr class="sep">
+    <button class="btn ghost" id="resetSelectionBtn" style="width:100%">Quên tên đã chọn (đổi người dùng)</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SHEET_ID = "11Sqw193YO4OchX-Wq9DnwqqDvWoTQSckdU13sQqj62U";
+  var DEFAULT_TABS = [
+    { label: "T6 - T7.2026", gid: "1080191820", year: 2026 }
+  ];
+  var STORAGE_KEYS = { tabs: "op-sheet-tabs", selectedName: "op-selected-name" };
+  var SKIP_NAMES = ["TỰ GHIM", "TU GHIM"];
+
+  var state = {
+    tabs: [],
+    rows: [],           // normalized shift rows
+    names: [],          // unique sorted list of names
+    brands: [],         // unique sorted list of brands
+    locations: [],      // unique sorted list of locations
+    selectedName: null,
+    selectedBrand: null,
+    selectedLocation: null,
+    viewMode: 'name',   // 'name' | 'brand' | 'location' | 'filter'
+    filter: { location:'', brand:'', person:'', timeFrom:'', timeTo:'', weekday:'' },
+    lastSync: null,
+    loading: false,
+    error: null
+  };
+
+  // ---------- storage helpers (localStorage — persistent across sessions) ----------
+  function storageGet(key){
+    try {
+      var val = localStorage.getItem(key);
+      return Promise.resolve(val !== null ? val : null);
+    } catch(e) {
+      return Promise.resolve(null);
+    }
+  }
+  function storageSet(key, value){
+    try {
+      localStorage.setItem(key, value);
+    } catch(e) {}
+    return Promise.resolve();
+  }
+
+  // ---------- text helpers ----------
+  function stripDiacritics(str){
+    if (!str) return "";
+    return str
+      .replace(/đ/g, "d").replace(/Đ/g, "D")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase().trim();
+  }
+  function cellText(cell){
+    if (!cell) return "";
+    if (cell.f !== undefined && cell.f !== null && cell.f !== "") return String(cell.f);
+    if (cell.v !== undefined && cell.v !== null) return String(cell.v);
+    return "";
+  }
+  function norm(s){ return (s||"").replace(/\u200b/g,"").trim(); }
+
+  function extractGid(input){
+    input = (input||"").trim();
+    if (/^\d+$/.test(input)) return input;
+    var m = input.match(/gid=(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  // ---------- gviz JSONP fetch ----------
+  var cbCounter = 0;
+  function fetchTabRaw(gid, timeoutMs){
+    return new Promise(function(resolve, reject){
+      cbCounter++;
+      var cbName = "__opCb" + cbCounter;
+      var done = false;
+      var timer = setTimeout(function(){
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("timeout"));
+      }, timeoutMs || 12000);
+
+      function cleanup(){
+        clearTimeout(timer);
+        delete window[cbName];
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[cbName] = function(data){
+        if (done) return;
+        done = true;
+        cleanup();
+        resolve(data);
+      };
+
+      var url = "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+                "/gviz/tq?gid=" + encodeURIComponent(gid) +
+                "&tqx=out:json;responseHandler:" + cbName;
+
+      var script = document.createElement("script");
+      script.src = url;
+      script.onerror = function(){
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error("script-error"));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  // ---------- parse one tab's gviz table into normalized rows ----------
+  function findHeaderRow(rows){
+    // Look for row containing BRAND (exact or close match)
+    for (var i=0;i<rows.length;i++){
+      var r = rows[i];
+      if (!r || !r.c) continue;
+      for (var j=0;j<r.c.length;j++){
+        var t = norm(cellText(r.c[j])).toUpperCase();
+        if (t === "BRAND" || t === "TEN BRAND" || t === "BRAND NAME" || t.indexOf("BRAND")===0) return i;
+      }
+    }
+    // Fallback: look for row containing OPERATOR or LOCATION
+    for (var i=0;i<rows.length;i++){
+      var r = rows[i];
+      if (!r || !r.c) continue;
+      for (var j=0;j<r.c.length;j++){
+        var t = norm(cellText(r.c[j])).toUpperCase();
+        if (t === "OPERATOR 1" || t === "LOCATION") return i;
+      }
+    }
+    return -1;
+  }
+  function findCol(headerRow, matchFn){
+    for (var j=0;j<headerRow.c.length;j++){
+      var t = norm(cellText(headerRow.c[j])).toUpperCase();
+      if (matchFn(t)) return j;
+    }
+    return -1;
+  }
+
+  function parseTab(tabData, tabMeta){
+    var out = [];
+    if (!tabData || !tabData.table || !tabData.table.rows) return out;
+    if (tabData.status === "error"){
+      var em = (tabData.errors && tabData.errors[0] && (tabData.errors[0].detailed_message || tabData.errors[0].message)) || "không rõ lỗi";
+      throw new Error(em);
+    }
+    var rows = tabData.table.rows;
+    var headerIdx = findHeaderRow(rows);
+    if (headerIdx === -1) return out;
+    var header = rows[headerIdx];
+
+    var colBrand = findCol(header, function(t){ return t === "BRAND"; });
+    if (colBrand === -1) return out;
+
+    // Some header cells (DAY, START, END, DURATION, OPERATOR 4...) can come back
+    // as null from gviz when the header row has merged cells. BRAND is reliably
+    // un-merged, so we anchor every other column to a fixed offset from it -
+    // this matches the sheet's real column order regardless of merge state.
+    function byLabelOrOffset(matchFn, offset){
+      var idx = findCol(header, matchFn);
+      if (idx > -1) return idx;
+      return offset === null ? -1 : colBrand + offset;
+    }
+
+    var colDate     = byLabelOrOffset(function(t){ return t === "DAY"; }, -2);
+    // if label-matched "DAY", that's the weekday col; date col sits right before it
+    var colDayLabelIdx = findCol(header, function(t){ return t === "DAY"; });
+    if (colDayLabelIdx > -1) colDate = colDayLabelIdx - 1;
+
+    var colDay      = colBrand - 1;
+    var colPlatform = byLabelOrOffset(function(t){ return t.indexOf("FLATFORM") === 0 || t.indexOf("PLATFORM") === 0; }, 1);
+    var colType     = byLabelOrOffset(function(t){ return t === "TYPE"; }, 2);
+    var colStart    = byLabelOrOffset(function(t){ return t === "START"; }, 3);
+    var colEnd      = byLabelOrOffset(function(t){ return t === "END"; }, 4);
+    var colLocation = byLabelOrOffset(function(t){ return t === "LOCATION"; }, 8);
+    var colOp1      = byLabelOrOffset(function(t){ return t === "OPERATOR 1"; }, 9);
+    var colDayOff   = byLabelOrOffset(function(t){ return t === "DAY OFF"; }, 15);
+    var colPhep     = byLabelOrOffset(function(t){ return t.indexOf("PHÉP") === 0 || t.indexOf("PHEP") === 0; }, 16);
+
+    if (colDate === -1 || colBrand === -1){ return out; }
+
+    for (var i=headerIdx+1;i<rows.length;i++){
+      var r = rows[i];
+      if (!r || !r.c) continue;
+      var dateStr = norm(cellText(r.c[colDate]));
+      if (!dateStr || !/^\d{1,2}\/\d{1,2}$/.test(dateStr)) continue;
+
+      var weekday = colDay>-1 ? norm(cellText(r.c[colDay])) : "";
+      var brand   = colBrand>-1 ? norm(cellText(r.c[colBrand])) : "";
+      var platform= colPlatform>-1 ? norm(cellText(r.c[colPlatform])) : "";
+      var type    = colType>-1 ? norm(cellText(r.c[colType])) : "";
+      var start   = colStart>-1 ? norm(cellText(r.c[colStart])) : "";
+      var end     = colEnd>-1 ? norm(cellText(r.c[colEnd])) : "";
+      var location= colLocation>-1 ? norm(cellText(r.c[colLocation])) : "";
+
+      var operators = [];
+      if (colOp1 > -1){
+        for (var k=0;k<5;k++){
+          var v = norm(cellText(r.c[colOp1+k]));
+          if (v && SKIP_NAMES.indexOf(v.toUpperCase()) === -1) operators.push(v);
+        }
+      }
+      var dayOffPerson = colDayOff>-1 ? norm(cellText(r.c[colDayOff])) : "";
+      var phepPerson    = colPhep>-1 ? norm(cellText(r.c[colPhep])) : "";
+      // last column often holds a free-text note
+      var note = "";
+      if (r.c.length > 0){
+        var lastCell = r.c[r.c.length-1];
+        var lastTxt = norm(cellText(lastCell));
+        if (lastTxt && lastTxt !== dayOffPerson && lastTxt !== phepPerson) note = lastTxt;
+      }
+
+      if (!brand && operators.length===0 && !dayOffPerson && !phepPerson) continue;
+
+      out.push({
+        tab: tabMeta.label,
+        year: tabMeta.year,
+        dateStr: dateStr,
+        weekday: weekday,
+        brand: brand,
+        platform: platform,
+        type: type,
+        start: start,
+        end: end,
+        location: location,
+        operators: operators,
+        dayOffPerson: dayOffPerson && SKIP_NAMES.indexOf(dayOffPerson.toUpperCase())===-1 ? dayOffPerson : "",
+        phepPerson: phepPerson && SKIP_NAMES.indexOf(phepPerson.toUpperCase())===-1 ? phepPerson : "",
+        note: note
+      });
+    }
+    return out;
+  }
+
+  function dateSortKey(row){
+    var m = row.dateStr.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (!m) return 999999;
+    var day = parseInt(m[1],10), month = parseInt(m[2],10);
+    var year = row.year || 2026;
+    return year*10000 + month*100 + day;
+  }
+  function timeSortKey(t){
+    var m = (t||"").match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return 0;
+    return parseInt(m[1],10)*60 + parseInt(m[2],10);
+  }
+
+  // ---------- load all tabs ----------
+  function loadAllTabs(){
+    state.loading = true;
+    state.error = null;
+    renderSyncLine();
+    setRefreshSpin(true);
+
+    return Promise.all(state.tabs.map(function(tab){
+      return fetchTabRaw(tab.gid).then(function(data){
+        var parsed = parseTab(data, tab);
+        if (parsed.length === 0){
+          // Try to give useful debug: what rows does sheet actually have?
+          var rawRows = (data && data.table && data.table.rows) ? data.table.rows : [];
+          var sample = rawRows.slice(0,15).map(function(r,i){
+            if (!r || !r.c) return "";
+            var vals = r.c.slice(0,8).map(function(c){ return c?(c.f||String(c.v)||""):""; });
+            return vals.filter(Boolean).join(" | ");
+          }).filter(Boolean).join(" // ");
+          return { __error: tab.label, message: "không đọc được dữ liệu. Mẫu dữ liệu thực tế: " + (sample||"(trống)") };
+        }
+        return parsed;
+      }).catch(function(err){
+        return { __error: tab.label, message: err.message };
+      });
+    })).then(function(results){
+      var allRows = [];
+      var errors = [];
+      results.forEach(function(r){
+        if (Array.isArray(r)) allRows = allRows.concat(r);
+        else errors.push(r.__error + " (" + r.message + ")");
+      });
+      allRows.sort(function(a,b){
+        var d = dateSortKey(a)-dateSortKey(b);
+        if (d!==0) return d;
+        return timeSortKey(a.start)-timeSortKey(b.start);
+      });
+      state.rows = allRows;
+      state.names = buildNameList(allRows);
+      state.brands = buildBrandList(allRows);
+      state.locations = buildLocationList(allRows);
+      state.loading = false;
+      state.lastSync = new Date();
+      state.error = errors.length ? ("Không tải được: " + errors.join(", ")) : null;
+      setRefreshSpin(false);
+      renderSyncLine();
+      renderPicker();
+      renderContent();
+    });
+  }
+
+  function buildNameList(rows){
+    var set = {};
+    rows.forEach(function(r){
+      r.operators.forEach(function(n){ set[n]=true; });
+      if (r.dayOffPerson) set[r.dayOffPerson]=true;
+      if (r.phepPerson) set[r.phepPerson]=true;
+    });
+    return Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'vi'); });
+  }
+
+  function buildBrandList(rows){
+    var set = {};
+    rows.forEach(function(r){
+      if (r.brand) set[r.brand]=true;
+    });
+    return Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'vi'); });
+  }
+
+  function getBrandRows(brand){
+    return state.rows
+      .filter(function(r){ return r.brand === brand; })
+      .map(function(r){ return Object.assign({}, r, { _kind: "shift" }); });
+  }
+
+  function buildLocationList(rows){
+    var set = {};
+    rows.forEach(function(r){
+      if (r.location) set[r.location] = true;
+    });
+    return Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'vi'); });
+  }
+
+  function getLocationRows(location){
+    return state.rows
+      .filter(function(r){ return r.location === location; })
+      .map(function(r){ return Object.assign({}, r, { _kind: "shift" }); });
+  }
+
+  function selectLocation(location){
+    state.selectedLocation = location;
+    state.autoRestored = false;
+    renderPicker();
+    renderSummary();
+    renderContent();
+    setTimeout(scrollToToday, 80);
+  }
+
+  function getPersonRows(name){
+    var matches = [];
+    state.rows.forEach(function(r){
+      var isOp = r.operators.indexOf(name) > -1;
+      var isOff = r.dayOffPerson === name;
+      var isPhep = r.phepPerson === name;
+      if (isOp || isOff || isPhep){
+        matches.push(Object.assign({}, r, { _kind: isOp ? "shift" : (isOff ? "off" : "phep") }));
+      }
+    });
+    return matches;
+  }
+
+  // ---------- date / today helpers ----------
+  function todayKey(){
+    var d = new Date();
+    return (d.getFullYear())*10000 + (d.getMonth()+1)*100 + d.getDate();
+  }
+  function isRowToday(row){
+    var m = row.dateStr.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (!m) return false;
+    var day=parseInt(m[1],10), month=parseInt(m[2],10), year= row.year||2026;
+    return (year*10000+month*100+day) === todayKey();
+  }
+
+  // ---------- RENDER ----------
+  function fmt2(n){ return n; }
+
+  function renderSyncLine(){
+    var el = document.getElementById("syncLine");
+    if (state.loading){
+      el.className = "sync-line";
+      el.textContent = "Đang đồng bộ với Google Sheet…";
+      return;
+    }
+    if (state.error){
+      el.className = "sync-line err";
+      el.textContent = "Lỗi đồng bộ: " + state.error + " — bấm ⟳ để thử lại";
+      return;
+    }
+    el.className = "sync-line";
+    var t = state.lastSync;
+    var hh = t ? String(t.getHours()).padStart(2,'0')+":"+String(t.getMinutes()).padStart(2,'0') : "--:--";
+    el.innerHTML = "Đã đồng bộ lúc " + hh + " <span class='sep'>·</span> " + state.rows.length + " ca trong " + state.tabs.length + " tab";
+  }
+
+  function setRefreshSpin(on){
+    document.getElementById("refreshBtn").classList.toggle("spin", !!on);
+  }
+
+  function renderPicker(){
+    var inner = document.getElementById("pickerInner");
+    var toggleHtml =
+      '<div class="mode-toggle">' +
+        '<button class="mode-btn'+(state.viewMode==='name'?' active':'')+'" id="modeNameBtn">👤 Theo tên</button>' +
+        '<button class="mode-btn'+(state.viewMode==='brand'?' active':'')+'" id="modeBrandBtn">🏷️ Theo brand</button>' +
+        '<button class="mode-btn'+(state.viewMode==='location'?' active':'')+'" id="modeLocationBtn">📍 Theo địa điểm</button>' +
+        '<button class="mode-btn'+(state.viewMode==='filter'?' active':'')+'" id="modeFilterBtn">🔍 Lọc nhanh</button>' +
+      '</div>';
+
+    if (state.viewMode === 'name'){
+      inner.innerHTML = toggleHtml + (state.selectedName ? currentPillHtml("Đang xem lịch của", state.selectedName, "switchNameBtn", "Đổi tên") : searchBoxHtml("nameSearch", "Chọn tên của bạn", "Nhập tên… VD: Mỹ Linh"));
+      wireModeToggle();
+      if (!state.selectedName){
+        wireSearch("nameSearch", state.names, function(n){
+          var c = getPersonRows(n).filter(function(r){ return r._kind==='shift'; }).length;
+          return c + " ca";
+        }, selectName, "Không tìm thấy tên này trong lịch");
+      } else {
+        document.getElementById("switchNameBtn").onclick = function(){
+          state.selectedName = null;
+          renderPicker(); renderSummary(); renderContent();
+          setTimeout(function(){ var i=document.getElementById("nameSearchInput"); if(i) i.focus(); }, 30);
+        };
+      }
+    } else if (state.viewMode === 'brand') {
+      inner.innerHTML = toggleHtml + (state.selectedBrand ? currentPillHtml("Đang xem ai trực", state.selectedBrand, "switchBrandBtn", "Đổi brand") : searchBoxHtml("brandSearch", "Chọn brand cần xem", "Nhập tên brand… VD: 3CE"));
+      wireModeToggle();
+      if (!state.selectedBrand){
+        wireSearch("brandSearch", state.brands, function(b){
+          var c = getBrandRows(b).length;
+          return c + " ca";
+        }, selectBrand, "Không tìm thấy brand này trong lịch");
+      } else {
+        document.getElementById("switchBrandBtn").onclick = function(){
+          state.selectedBrand = null;
+          renderPicker(); renderSummary(); renderContent();
+          setTimeout(function(){ var i=document.getElementById("brandSearchInput"); if(i) i.focus(); }, 30);
+        };
+      }
+    } else if (state.viewMode === 'location') {
+      inner.innerHTML = toggleHtml + (state.selectedLocation ? currentPillHtml("Đang xem địa điểm", state.selectedLocation, "switchLocationBtn", "Đổi địa điểm") : searchBoxHtml("locationSearch", "Chọn địa điểm", "Nhập tên địa điểm… VD: BIGSTU_L1"));
+      wireModeToggle();
+      if (!state.selectedLocation){
+        wireSearch("locationSearch", state.locations, function(loc){
+          var c = getLocationRows(loc).length;
+          return c + " ca";
+        }, selectLocation, "Không tìm thấy địa điểm này trong lịch");
+      } else {
+        document.getElementById("switchLocationBtn").onclick = function(){
+          state.selectedLocation = null;
+          renderPicker(); renderSummary(); renderContent();
+          setTimeout(function(){ var i=document.getElementById("locationSearchInput"); if(i) i.focus(); }, 30);
+        };
+      }
+    } else {
+      // filter mode — no picker needed, just toggle
+      inner.innerHTML = toggleHtml;
+      wireModeToggle();
+    }
+  }
+
+  function wireModeToggle(){
+    document.getElementById("modeNameBtn").onclick = function(){
+      if (state.viewMode === 'name') return;
+      state.viewMode = 'name';
+      renderPicker(); renderSummary(); renderContent();
+    };
+    document.getElementById("modeBrandBtn").onclick = function(){
+      if (state.viewMode === 'brand') return;
+      state.viewMode = 'brand';
+      renderPicker(); renderSummary(); renderContent();
+    };
+    document.getElementById("modeLocationBtn").onclick = function(){
+      if (state.viewMode === 'location') return;
+      state.viewMode = 'location';
+      renderPicker(); renderSummary(); renderContent();
+    };
+    document.getElementById("modeFilterBtn").onclick = function(){
+      if (state.viewMode === 'filter') return;
+      state.viewMode = 'filter';
+      renderPicker(); renderSummary(); renderContent();
+    };
+  }
+
+  function currentPillHtml(label, value, btnId, btnLabel){
+    return '<div class="current-pill">' +
+        '<div><div class="picker-label" style="margin-bottom:4px">'+escapeHtml(label)+'</div>' +
+        '<div class="name">'+escapeHtml(value)+'</div></div>' +
+        '<button class="switch-link" id="'+btnId+'">'+escapeHtml(btnLabel)+'</button>' +
+      '</div>';
+  }
+
+  function searchBoxHtml(prefix, label, placeholder){
+    return '<div class="picker-label">'+escapeHtml(label)+'</div>' +
+      '<div style="position:relative">' +
+        '<input class="search-input" id="'+prefix+'Input" placeholder="'+escapeHtml(placeholder)+'" autocomplete="off">' +
+        '<button class="clear-btn" id="'+prefix+'Clear">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+        '<div class="dropdown" id="'+prefix+'Dropdown" style="position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:9999;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;max-height:280px;overflow-y:auto;box-shadow:0 14px 32px rgba(0,0,0,.5);display:none"></div>' +
+      '</div>';
+  }
+
+  function wireSearch(prefix, items, countFn, onSelect, emptyMsg){
+    var input = document.getElementById(prefix+"Input");
+    var dropdown = document.getElementById(prefix+"Dropdown");
+    var clearBtn = document.getElementById(prefix+"Clear");
+
+    function showList(filter){
+      var q = stripDiacritics(filter);
+      var matches = items.filter(function(n){ return stripDiacritics(n).indexOf(q) > -1; });
+      if (matches.length === 0){
+        dropdown.innerHTML = '<div class="dd-empty">'+escapeHtml(emptyMsg)+'</div>';
+      } else {
+        dropdown.innerHTML = matches.slice(0,30).map(function(n){
+          return '<div class="dd-item" data-val="'+escapeHtml(n)+'">'+escapeHtml(n)+'<small>'+escapeHtml(countFn(n))+'</small></div>';
+        }).join("");
+      }
+      dropdown.style.display = "block";
+    }
+
+    // Auto-show khi gõ
+    input.addEventListener("focus", function(){ showList(input.value); });
+    input.addEventListener("input", function(){
+      clearBtn.classList.toggle("show", input.value.length>0);
+      showList(input.value);
+    });
+    dropdown.addEventListener("click", function(e){
+      var item = e.target.closest(".dd-item");
+      if (!item) return;
+      onSelect(item.getAttribute("data-val"));
+    });
+    clearBtn.addEventListener("click", function(){
+      input.value=""; clearBtn.classList.remove("show"); dropdown.style.display = "none"; showList(""); input.focus();
+    });
+    document.addEventListener("click", function(e){
+      if (!e.target.closest('[style*="position:relative"]')) dropdown.style.display = "none";
+    });
+  }
+
+  function selectName(name){
+    state.selectedName = name;
+    state.autoRestored = false;
+    storageSet(STORAGE_KEYS.selectedName, name);
+    renderPicker();
+    renderSummary();
+    renderContent();
+    setTimeout(scrollToToday, 80);
+  }
+
+  function selectBrand(brand){
+    state.selectedBrand = brand;
+    state.autoRestored = false;
+    renderPicker();
+    renderSummary();
+    renderContent();
+    setTimeout(scrollToToday, 80);
+  }
+
+  function renderSummary(){
+    var box = document.getElementById("summaryBox");
+    if (state.viewMode === 'name'){
+      if (!state.selectedName){ box.innerHTML = ""; return; }
+      var rows = getPersonRows(state.selectedName);
+      var shifts = rows.filter(function(r){ return r._kind==='shift'; });
+      var totalHours = shifts.reduce(function(sum,r){
+        var s = timeSortKey(r.start), e = timeSortKey(r.end);
+        var diff = e - s; if (diff <= 0) diff += 24*60;
+        return sum + diff/60;
+      }, 0);
+      var upcoming = shifts.filter(function(r){ return dateSortKey(r) >= todayKey(); }).length;
+      box.innerHTML =
+        '<div class="summary">' +
+          statHtml(shifts.length, "Tổng ca") +
+          statHtml(Math.round(totalHours*10)/10, "Tổng giờ") +
+          statHtml(upcoming, "Ca sắp tới") +
+        '</div>';
+    } else if (state.viewMode === 'brand') {
+      if (!state.selectedBrand){ box.innerHTML = ""; return; }
+      var brows = getBrandRows(state.selectedBrand);
+      var upcomingB = brows.filter(function(r){ return dateSortKey(r) >= todayKey(); }).length;
+      var peopleSet = {};
+      brows.forEach(function(r){ r.operators.forEach(function(n){ peopleSet[n]=true; }); });
+      box.innerHTML =
+        '<div class="summary">' +
+          statHtml(brows.length, "Tổng ca") +
+          statHtml(Object.keys(peopleSet).length, "Người trực") +
+          statHtml(upcomingB, "Ca sắp tới") +
+        '</div>';
+    } else if (state.viewMode === 'location') {
+      if (!state.selectedLocation){ box.innerHTML = ""; return; }
+      var lrows = getLocationRows(state.selectedLocation);
+      var upcomingL = lrows.filter(function(r){ return dateSortKey(r) >= todayKey(); }).length;
+      var brandSet = {};
+      lrows.forEach(function(r){ if(r.brand) brandSet[r.brand]=true; });
+      box.innerHTML =
+        '<div class="summary">' +
+          statHtml(lrows.length, "Tổng ca") +
+          statHtml(Object.keys(brandSet).length, "Brand") +
+          statHtml(upcomingL, "Ca sắp tới") +
+        '</div>';
+    } else if (state.viewMode === 'filter') {
+      var frows = applyFilter(state.rows);
+      var fUpcoming = frows.filter(function(r){ return dateSortKey(r) >= todayKey(); }).length;
+      box.innerHTML =
+        '<div class="summary">' +
+          statHtml(frows.length, "Kết quả") +
+          statHtml(fUpcoming, "Ca sắp tới") +
+          statHtml(state.rows.length, "Tổng cộng") +
+        '</div>';
+    }
+  }
+  function statHtml(num,label){
+    return '<div class="stat"><span class="num">'+num+'</span><span class="lbl">'+label+'</span></div>';
+  }
+
+  function platformTag(r){
+    var parts = [r.platform, r.type].filter(Boolean);
+    return parts.join(" · ");
+  }
+
+  function renderContent(){
+    if (state.viewMode === 'brand') return renderBrandContent();
+    if (state.viewMode === 'location') return renderLocationContent();
+    if (state.viewMode === 'filter') return renderFilterContent();
+    return renderNameContent();
+  }
+
+  function renderNameContent(){
+    var box = document.getElementById("contentBox");
+    if (state.loading && state.rows.length===0){
+      box.innerHTML = stateBox("⏳","Đang tải lịch…","Lấy dữ liệu mới nhất từ Google Sheet.");
+      return;
+    }
+    if (!state.selectedName || state.autoRestored){
+      var _hint = state.selectedName ? "Tên <b style='color:var(--teal)'>"+escapeHtml(state.selectedName)+"</b> đã được nhớ — gõ lại hoặc chọn tên để xem lịch." : "Lịch của bạn sẽ hiện ra ngay, sắp theo từng ngày — không cần dò từng dòng trong sheet.";
+      box.innerHTML = stateBox("👋","Chọn tên để xem lịch", _hint);
+      return;
+    }
+    var rows = getPersonRows(state.selectedName);
+    if (rows.length === 0){
+      box.innerHTML = stateBox("🗒️","Chưa có lịch nào","Không thấy "+escapeHtml(state.selectedName)+" trong các tab đang theo dõi. Có thể tên trong sheet viết khác, hoặc cần thêm tab tháng vào Cài đặt.");
+      return;
+    }
+
+    // group by date
+    var groups = [];
+    var byKey = {};
+    rows.forEach(function(r){
+      var key = r.dateStr+"|"+r.year;
+      if (!byKey[key]){
+        byKey[key] = { dateStr:r.dateStr, weekday:r.weekday, year:r.year, items:[] };
+        groups.push(byKey[key]);
+      }
+      byKey[key].items.push(r);
+    });
+    groups.sort(function(a,b){ return dateSortKey(a.items[0]) - dateSortKey(b.items[0]); });
+    groups.forEach(function(g){
+      g.items.sort(function(a,b){ return timeSortKey(a.start)-timeSortKey(b.start); });
+    });
+
+    var html = '<div class="timeline" id="timelineEl">';
+    groups.forEach(function(g, idx){
+      var isToday = isRowToday(g.items[0]);
+      html += '<div class="day-group" '+(isToday?'id="todayAnchor"':'')+'>';
+      html += '<div class="day-head"><span class="wd">'+escapeHtml(translateWeekday(g.weekday))+'</span><span class="dd">'+escapeHtml(g.dateStr)+'</span>';
+      if (isToday) html += '<span class="today-badge">Hôm nay</span>';
+      html += '<span class="tick"></span></div>';
+
+      g.items.forEach(function(r){
+        if (r._kind === 'off' || r._kind === 'phep'){
+          html += '<div class="shift-card leave'+(isToday?' today':'')+'">' +
+            '<div class="leave-label">'+(r._kind==='phep' ? '🗓️ Phép năm' : '🌙 Ngày nghỉ')+'</div>' +
+          '</div>';
+        } else {
+          var mates = r.operators.filter(function(n){ return n!==state.selectedName; });
+          html += '<div class="shift-card'+(isToday?' today':'')+'">' +
+            '<div class="sc-top">' +
+              '<div class="sc-brand">'+escapeHtml(r.brand||"(chưa rõ brand)")+'</div>' +
+              '<div class="sc-tags">'+(platformTag(r) ? '<span class="tag">'+escapeHtml(platformTag(r))+'</span>' : '')+'</div>' +
+            '</div>' +
+            '<div class="sc-time">'+escapeHtml(r.start)+' – '+escapeHtml(r.end)+'</div>' +
+            '<div class="sc-meta">' +
+              (r.location ? '<span>📍 '+escapeHtml(r.location)+'</span>' : '') +
+              (mates.length ? '<span>👥 '+escapeHtml(mates.join(", "))+'</span>' : '') +
+            '</div>' +
+            (r.note ? '<div class="sc-note">'+escapeHtml(r.note)+'</div>' : '') +
+          '</div>';
+        }
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div class="timeline-spacer"></div>';
+
+    html += '<div class="footer-actions">' +
+      '<button class="btn ghost" id="jumpTodayBtn">📍 Hôm nay</button>' +
+      '<button class="btn" id="icsBtn">📅 Lịch</button>' +
+      '<button class="btn ghost" id="exportBtn">⬇ Excel</button>' +
+    '</div>';
+
+    box.innerHTML = html;
+
+    var jumpBtn = document.getElementById("jumpTodayBtn");
+    if (jumpBtn) jumpBtn.onclick = function(){ scrollToToday(); };
+    var icsBtn = document.getElementById("icsBtn");
+    if (icsBtn) icsBtn.onclick = function(){ exportICS(state.selectedName, rows, groups); };
+    var exportBtn = document.getElementById("exportBtn");
+    if (exportBtn) exportBtn.onclick = function(){ exportExcel(state.selectedName, rows, groups); };
+
+    setTimeout(scrollToToday, 60);
+  }
+
+  function renderBrandContent(){
+    var box = document.getElementById("contentBox");
+    if (state.loading && state.rows.length===0){
+      box.innerHTML = stateBox("⏳","Đang tải lịch…","Lấy dữ liệu mới nhất từ Google Sheet.");
+      return;
+    }
+    if (!state.selectedBrand || state.autoRestored){
+      var _bh = state.selectedBrand ? "Brand <b style='color:var(--teal)'>"+escapeHtml(state.selectedBrand)+"</b> đã được nhớ — gõ lại hoặc chọn để xem lịch." : "Gõ tên brand, lịch trực của brand đó sẽ hiện ra ngay, sắp theo từng ngày.";
+      box.innerHTML = stateBox("🏷️","Chọn brand để xem ai trực", _bh);
+      return;
+    }
+    var rows = getBrandRows(state.selectedBrand);
+    if (rows.length === 0){
+      box.innerHTML = stateBox("🗒️","Chưa có lịch nào","Không thấy brand \""+escapeHtml(state.selectedBrand)+"\" trong các tab đang theo dõi.");
+      return;
+    }
+
+    var groups = [];
+    var byKey = {};
+    rows.forEach(function(r){
+      var key = r.dateStr+"|"+r.year;
+      if (!byKey[key]){
+        byKey[key] = { dateStr:r.dateStr, weekday:r.weekday, year:r.year, items:[] };
+        groups.push(byKey[key]);
+      }
+      byKey[key].items.push(r);
+    });
+    groups.sort(function(a,b){ return dateSortKey(a.items[0]) - dateSortKey(b.items[0]); });
+    groups.forEach(function(g){
+      g.items.sort(function(a,b){ return timeSortKey(a.start)-timeSortKey(b.start); });
+    });
+
+    var html = '<div class="timeline" id="timelineEl">';
+    groups.forEach(function(g){
+      var isToday = isRowToday(g.items[0]);
+      html += '<div class="day-group" '+(isToday?'id="todayAnchor"':'')+'>';
+      html += '<div class="day-head"><span class="wd">'+escapeHtml(translateWeekday(g.weekday))+'</span><span class="dd">'+escapeHtml(g.dateStr)+'</span>';
+      if (isToday) html += '<span class="today-badge">Hôm nay</span>';
+      html += '<span class="tick"></span></div>';
+
+      g.items.forEach(function(r){
+        var people = r.operators.length ? r.operators.join(", ") : "(chưa gán người)";
+        html += '<div class="shift-card'+(isToday?' today':'')+'">' +
+          '<div class="sc-top">' +
+            '<div class="sc-brand">👥 '+escapeHtml(people)+'</div>' +
+            '<div class="sc-tags">'+(platformTag(r) ? '<span class="tag">'+escapeHtml(platformTag(r))+'</span>' : '')+'</div>' +
+          '</div>' +
+          '<div class="sc-time">'+escapeHtml(r.start)+' – '+escapeHtml(r.end)+'</div>' +
+          '<div class="sc-meta">' +
+            (r.location ? '<span>📍 '+escapeHtml(r.location)+'</span>' : '') +
+          '</div>' +
+          (r.note ? '<div class="sc-note">'+escapeHtml(r.note)+'</div>' : '') +
+        '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div class="timeline-spacer"></div>';
+
+    html += '<div class="footer-actions">' +
+      '<button class="btn ghost" id="jumpTodayBtn">📍 Hôm nay</button>' +
+      '<button class="btn ghost" id="exportBtn" style="flex:2">⬇ Xuất Excel</button>' +
+    '</div>';
+
+    box.innerHTML = html;
+
+    var jumpBtn = document.getElementById("jumpTodayBtn");
+    if (jumpBtn) jumpBtn.onclick = function(){ scrollToToday(); };
+    var exportBtn = document.getElementById("exportBtn");
+    if (exportBtn) exportBtn.onclick = function(){ exportExcel(null, rows, groups, "Người trực"); };
+
+    setTimeout(scrollToToday, 60);
+  }
+
+  // ===== FILTER HELPERS =====
+  var WD_VI_MAP = { Monday:"T2", Tuesday:"T3", Wednesday:"T4", Thursday:"T5", Friday:"T6", Saturday:"T7", Sunday:"CN" };
+
+  function applyFilter(rows){
+    var f = state.filter;
+    return rows.filter(function(r){
+      if (r._kind && r._kind !== 'shift') return false;
+      if (f.location && r.location !== f.location) return false;
+      if (f.brand && stripDiacritics(r.brand).indexOf(stripDiacritics(f.brand)) === -1) return false;
+      if (f.person && r.operators.every(function(op){ return stripDiacritics(op).indexOf(stripDiacritics(f.person)) === -1; })) return false;
+      if (f.weekday && WD_VI_MAP[r.weekday] !== f.weekday) return false;
+      if (f.timeFrom || f.timeTo){
+        var startM = timeSortKey(r.start);
+        if (f.timeFrom && startM < timeSortKey(f.timeFrom)) return false;
+        if (f.timeTo && startM > timeSortKey(f.timeTo)) return false;
+      }
+      return true;
+    }).map(function(r){ return Object.assign({}, r, { _kind: "shift" }); });
+  }
+
+  function stripDiacritics(s){
+    return (s||"").replace(/đ/g,"d").replace(/Đ/g,"D").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+  }
+
+  function renderFilterContent(){
+    var box = document.getElementById("contentBox");
+    if (state.loading && state.rows.length === 0){
+      box.innerHTML = stateBox("⏳","Đang tải…","Lấy dữ liệu từ Google Sheet."); return;
+    }
+
+    // Unique values for dropdowns
+    var locOpts = [""].concat(state.locations.slice().sort());
+    var brandOpts = [""].concat(state.brands.slice().sort());
+    var nameOpts = [""].concat(state.names.slice().sort());
+    var wdOpts = [
+      {v:"",l:"Tất cả thứ"},
+      {v:"T2",l:"Thứ 2"},{v:"T3",l:"Thứ 3"},{v:"T4",l:"Thứ 4"},
+      {v:"T5",l:"Thứ 5"},{v:"T6",l:"Thứ 6"},{v:"T7",l:"Thứ 7"},{v:"CN",l:"Chủ nhật"}
+    ];
+
+    var f = state.filter;
+
+    function selOpts(opts, current){
+      return opts.map(function(o){
+        var v = typeof o === "string" ? o : o.v;
+        var l = typeof o === "string" ? (o || "— Tất cả —") : o.l;
+        return "<option value=\""+escapeHtml(v)+"\"" + (current===v?" selected":"") + ">"+escapeHtml(l)+"</option>";
+      }).join("");
+    }
+
+    var filterBar =
+      "<div id=\"filterBar\" style=\"background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 14px 10px;margin-bottom:14px\">" +
+      "<div style=\"font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:10px\">Bộ lọc — chọn 1 hoặc nhiều trường</div>" +
+
+      "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\">" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">📍 Địa điểm</div>" +
+      "<select class=\"filter-sel\" id=\"fLoc\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\">" +
+      selOpts(locOpts, f.location) + "</select></div>" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">🏷️ Brand / Kênh</div>" +
+      "<input class=\"filter-inp\" id=\"fBrand\" value=\""+escapeHtml(f.brand)+"\" placeholder=\"Gõ tên brand…\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\"></div>" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">👤 Người trực</div>" +
+      "<input class=\"filter-inp\" id=\"fPerson\" value=\""+escapeHtml(f.person)+"\" placeholder=\"Gõ tên người…\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\"></div>" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">📅 Thứ</div>" +
+      "<select class=\"filter-sel\" id=\"fWD\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\">" +
+      selOpts(wdOpts, f.weekday) + "</select></div>" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">⏰ Giờ bắt đầu từ</div>" +
+      "<input class=\"filter-inp\" id=\"fFrom\" type=\"time\" value=\""+escapeHtml(f.timeFrom)+"\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\"></div>" +
+
+      "<div><div style=\"font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px\">⏰ Đến giờ</div>" +
+      "<input class=\"filter-inp\" id=\"fTo\" type=\"time\" value=\""+escapeHtml(f.timeTo)+"\" style=\"width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--text);font-size:13px;outline:none\"></div>" +
+
+      "</div>" +
+      "<div style=\"display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px\">" +
+      "<button id=\"clearFilterBtn\" style=\"background:none;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;font-family:var(--body);font-weight:600;padding:0\">✕ Xoá bộ lọc</button>" +
+      "<button id=\"runFilterBtn\" style=\"background:var(--teal);color:#0E1714;border:none;border-radius:10px;padding:11px 24px;font-family:var(--body);font-weight:700;font-size:14px;cursor:pointer;flex-shrink:0\">🔍 Tìm kiếm</button>" +
+      "</div></div>";
+
+    var filtered = applyFilter(state.rows);
+    var hasFilter = f.location || f.brand || f.person || f.weekday || f.timeFrom || f.timeTo;
+    var resultHtml = "";
+
+    if (!hasFilter){
+      resultHtml = stateBox("🔍","Chọn bộ lọc để tìm","Kết hợp nhiều trường cùng lúc — địa điểm, brand, giờ làm, thứ trong tuần, người trực.");
+    } else if (filtered.length === 0){
+      resultHtml = stateBox("🗒️","Không tìm thấy ca nào","Thử bỏ bớt hoặc thay đổi bộ lọc.");
+    } else {
+      // group by date
+      var groups = [], byKey = {};
+      filtered.sort(function(a,b){
+        var d = dateSortKey(a) - dateSortKey(b);
+        return d !== 0 ? d : timeSortKey(a.start) - timeSortKey(b.start);
+      });
+      filtered.forEach(function(r){
+        var key = r.dateStr+"|"+r.year;
+        if (!byKey[key]){ byKey[key] = { dateStr:r.dateStr, weekday:r.weekday, year:r.year, items:[] }; groups.push(byKey[key]); }
+        byKey[key].items.push(r);
+      });
+
+      resultHtml = "<div class=\"timeline\">";
+      groups.forEach(function(g){
+        var isToday = isRowToday(g.items[0]);
+        resultHtml += "<div class=\"day-group\" "+(isToday?"id=\"todayAnchor\"":'')+">";
+        resultHtml += "<div class=\"day-head\"><span class=\"wd\">"+escapeHtml(translateWeekday(g.weekday))+"</span><span class=\"dd\">"+escapeHtml(g.dateStr)+"</span>";
+        if (isToday) resultHtml += "<span class=\"today-badge\">Hôm nay</span>";
+        resultHtml += "<span class=\"tick\"></span></div>";
+        g.items.forEach(function(r){
+          resultHtml += "<div class=\"shift-card\">" +
+            "<div class=\"sc-top\">" +
+              "<div class=\"sc-brand\">"+escapeHtml(r.brand||"")+"</div>" +
+              "<div class=\"sc-tags\">"+(platformTag(r)?"<span class=\"tag\">"+escapeHtml(platformTag(r))+"</span>":"")+"</div>" +
+            "</div>" +
+            "<div class=\"sc-time\">"+escapeHtml(r.start)+" – "+escapeHtml(r.end)+"</div>" +
+            "<div class=\"sc-meta\">" +
+              (r.location ? "<span>📍 "+escapeHtml(r.location)+"</span>" : "") +
+              (r.operators.length ? "<span>👥 "+escapeHtml(r.operators.join(", "))+"</span>" : "") +
+            "</div>" +
+            (r.note ? "<div class=\"sc-note\">"+escapeHtml(r.note)+"</div>" : "") +
+          "</div>";
+        });
+        resultHtml += "</div>";
+      });
+      resultHtml += "</div>";
+      resultHtml += "<div class=\"timeline-spacer\"></div>";
+      resultHtml += "<div class=\"footer-actions\">" +
+        "<button class=\"btn ghost\" id=\"jumpTodayBtn\">📍 Hôm nay</button>" +
+        "<button class=\"btn ghost\" id=\"exportFBtn\">⬇ Excel</button>" +
+      "</div>";
+    }
+
+    box.innerHTML = filterBar + resultHtml;
+
+    // Wire: chỉ chạy khi bấm nút Tìm kiếm
+    function readFilterInputs(){
+      state.filter.location = document.getElementById("fLoc").value;
+      state.filter.brand    = document.getElementById("fBrand").value;
+      state.filter.person   = document.getElementById("fPerson").value;
+      state.filter.weekday  = document.getElementById("fWD").value;
+      state.filter.timeFrom = document.getElementById("fFrom").value;
+      state.filter.timeTo   = document.getElementById("fTo").value;
+    }
+
+    // Select dropdowns: auto-search on change
+    ["fLoc","fWD"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.addEventListener("change", function(){
+        readFilterInputs(); renderSummary(); renderFilterContent();
+      });
+    });
+
+    // Text inputs: Enter triggers search
+    ["fBrand","fPerson","fFrom","fTo"].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.addEventListener("keydown", function(e){
+        if (e.key === "Enter"){ readFilterInputs(); renderSummary(); renderFilterContent(); }
+      });
+    });
+
+    var searchBtn = document.getElementById("runFilterBtn");
+    if (searchBtn) searchBtn.onclick = function(){
+      readFilterInputs(); renderSummary(); renderFilterContent();
+    };
+
+    var clearBtn = document.getElementById("clearFilterBtn");
+    if (clearBtn) clearBtn.onclick = function(){
+      state.filter = { location:"", brand:"", person:"", timeFrom:"", timeTo:"", weekday:"" };
+      renderSummary(); renderFilterContent();
+    };
+
+    var jumpBtn = document.getElementById("jumpTodayBtn");
+    if (jumpBtn) jumpBtn.onclick = function(){ scrollToToday(); };
+
+    var exportFBtn = document.getElementById("exportFBtn");
+    if (exportFBtn) exportFBtn.onclick = function(){
+      exportExcel("Kết quả lọc", filtered, null, "Người trực");
+    };
+
+  }
+
+  function renderLocationContent(){
+    var box = document.getElementById("contentBox");
+    if (state.loading && state.rows.length===0){
+      box.innerHTML = stateBox("⏳","Đang tải lịch…","Lấy dữ liệu mới nhất từ Google Sheet.");
+      return;
+    }
+    if (!state.selectedLocation || state.autoRestored){
+      var hint = state.selectedLocation
+        ? "Địa điểm <b style=\"color:var(--teal)\">"+escapeHtml(state.selectedLocation)+"</b> đã được nhớ — gõ lại hoặc chọn để xem lịch."
+        : "Tất cả ca tại địa điểm đó sẽ hiện ra, sắp theo từng ngày.";
+      box.innerHTML = stateBox("📍","Chọn địa điểm để xem lịch", hint);
+      return;
+    }
+    var rows = getLocationRows(state.selectedLocation);
+    if (rows.length === 0){
+      box.innerHTML = stateBox("🗒️","Chưa có ca nào","Không tìm thấy ca nào tại địa điểm này.");
+      return;
+    }
+
+    var groups = [];
+    var byKey = {};
+    rows.forEach(function(r){
+      var key = r.dateStr+"|"+r.year;
+      if (!byKey[key]){
+        byKey[key] = { dateStr:r.dateStr, weekday:r.weekday, year:r.year, items:[] };
+        groups.push(byKey[key]);
+      }
+      byKey[key].items.push(r);
+    });
+    groups.sort(function(a,b){ return dateSortKey(a.items[0]) - dateSortKey(b.items[0]); });
+    groups.forEach(function(g){
+      g.items.sort(function(a,b){ return timeSortKey(a.start)-timeSortKey(b.start); });
+    });
+
+    var html = '<div class="timeline" id="timelineEl">';
+    groups.forEach(function(g){
+      var isToday = isRowToday(g.items[0]);
+      html += '<div class="day-group" '+(isToday?'id="todayAnchor"':'')+'>'; 
+      html += '<div class="day-head"><span class="wd">'+escapeHtml(translateWeekday(g.weekday))+'</span><span class="dd">'+escapeHtml(g.dateStr)+'</span>';
+      if (isToday) html += '<span class="today-badge">Hôm nay</span>';
+      html += '<span class="tick"></span></div>';
+
+      g.items.forEach(function(r){
+        html += '<div class="shift-card">' +
+          '<div class="sc-top">' +
+            '<div class="sc-brand">'+escapeHtml(r.brand||"(chưa rõ brand)")+'</div>' +
+            '<div class="sc-tags">'+(platformTag(r) ? '<span class="tag">'+escapeHtml(platformTag(r))+'</span>' : '')+'</div>' +
+          '</div>' +
+          '<div class="sc-time">'+escapeHtml(r.start)+' – '+escapeHtml(r.end)+'</div>' +
+          '<div class="sc-meta">' +
+            (r.operators.length ? '<span>👥 '+escapeHtml(r.operators.join(", "))+'</span>' : '') +
+          '</div>' +
+          (r.note ? '<div class="sc-note">'+escapeHtml(r.note)+'</div>' : '') +
+        '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div class="timeline-spacer"></div>';
+    html += '<div class="footer-actions">' +
+      '<button class="btn ghost" id="jumpTodayBtn">📍 Hôm nay</button>' +
+      '<button class="btn ghost" id="exportBtn">⬇ Excel</button>' +
+    '</div>';
+
+    box.innerHTML = html;
+    var jumpBtn = document.getElementById("jumpTodayBtn");
+    if (jumpBtn) jumpBtn.onclick = function(){ scrollToToday(); };
+    var exportBtn = document.getElementById("exportBtn");
+    if (exportBtn) exportBtn.onclick = function(){
+      exportExcel(state.selectedLocation + " (địa điểm)", rows, groups, "Người trực");
+    };
+    setTimeout(scrollToToday, 60);
+  }
+
+    function scrollToToday(){
+    var el = document.getElementById("todayAnchor");
+    if (el && typeof el.scrollIntoView === "function"){
+      try { el.scrollIntoView({ behavior:"smooth", block:"start" }); }
+      catch(e){ try { el.scrollIntoView(true); } catch(e2){} }
+    }
+  }
+
+  var WEEKDAY_VI = {
+    Monday:"Thứ 2", Tuesday:"Thứ 3", Wednesday:"Thứ 4", Thursday:"Thứ 5",
+    Friday:"Thứ 6", Saturday:"Thứ 7", Sunday:"Chủ nhật"
+  };
+  function translateWeekday(w){ return WEEKDAY_VI[w] || w; }
+
+  function stateBox(icon,title,desc){
+    return '<div class="state-box"><div class="big">'+icon+'</div><h3>'+escapeHtml(title)+'</h3><p>'+escapeHtml(desc)+'</p></div>';
+  }
+  function escapeHtml(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ---------- ICS (Calendar) export ----------
+  function pad2(n){ return n<10 ? "0"+n : ""+n; }
+
+  function parseDM(dateStr){
+    var m = dateStr.match(/^(\d{1,2})\/(\d{1,2})$/);
+    return { day: parseInt(m[1],10), month: parseInt(m[2],10) };
+  }
+  function buildDT(dateStr, timeStr, year){
+    var dm = parseDM(dateStr);
+    var tm = (timeStr||"00:00").match(/^(\d{1,2}):(\d{2})/);
+    var hh = tm ? parseInt(tm[1],10) : 0;
+    var mi = tm ? parseInt(tm[2],10) : 0;
+    return { y: year, mo: dm.month, d: dm.day, h: hh, mi: mi };
+  }
+  function addDays(dt, days){
+    var d = new Date(dt.y, dt.mo-1, dt.d, dt.h, dt.mi);
+    d.setDate(d.getDate()+days);
+    return { y: d.getFullYear(), mo: d.getMonth()+1, d: d.getDate(), h: d.getHours(), mi: d.getMinutes() };
+  }
+  function fmtDT(dt){
+    return ""+dt.y+pad2(dt.mo)+pad2(dt.d)+"T"+pad2(dt.h)+pad2(dt.mi)+"00";
+  }
+  function fmtYMD(dt){
+    return ""+dt.y+pad2(dt.mo)+pad2(dt.d);
+  }
+  function icsEscape(s){
+    return String(s==null?"":s).replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
+  }
+
+  function exportICS(name, rows, groups){
+    var todayK = todayKey();
+    var lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Lich truc OP//VN","CALSCALE:GREGORIAN"];
+    var count = 0;
+    var now = new Date();
+    var stamp = ""+now.getUTCFullYear()+pad2(now.getUTCMonth()+1)+pad2(now.getUTCDate())+"T"+pad2(now.getUTCHours())+pad2(now.getUTCMinutes())+pad2(now.getUTCSeconds())+"Z";
+
+    groups.forEach(function(g){
+      if (dateSortKey(g.items[0]) < todayK) return; // chỉ xuất các ca sắp tới / hôm nay
+      g.items.forEach(function(r, idx){
+        count++;
+        var uid = "lichtrucop-" + g.dateStr.replace("/","") + "-" + g.year + "-" + idx + "-" + Math.random().toString(36).slice(2,8) + "@lichtrucop";
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:"+uid);
+        lines.push("DTSTAMP:"+stamp);
+        if (r._kind === "off" || r._kind === "phep"){
+          var d0 = buildDT(g.dateStr, "00:00", g.year);
+          var d1 = addDays(d0, 1);
+          lines.push("DTSTART;VALUE=DATE:"+fmtYMD(d0));
+          lines.push("DTEND;VALUE=DATE:"+fmtYMD(d1));
+          lines.push("SUMMARY:"+icsEscape(r._kind==="phep" ? "Phép năm" : "Ngày nghỉ"));
+        } else {
+          var sDt = buildDT(g.dateStr, r.start, g.year);
+          var eDt = buildDT(g.dateStr, r.end, g.year);
+          if (timeSortKey(r.end) <= timeSortKey(r.start)) eDt = addDays(eDt, 1);
+          var mates = r.operators.filter(function(n){ return n!==name; });
+          var descParts = [];
+          if (platformTag(r)) descParts.push(platformTag(r));
+          if (mates.length) descParts.push("Cùng ca: "+mates.join(", "));
+          if (r.note) descParts.push(r.note);
+          lines.push("DTSTART:"+fmtDT(sDt));
+          lines.push("DTEND:"+fmtDT(eDt));
+          lines.push("SUMMARY:"+icsEscape(r.brand || "(chưa rõ brand)"));
+          if (r.location) lines.push("LOCATION:"+icsEscape(r.location));
+          if (descParts.length) lines.push("DESCRIPTION:"+icsEscape(descParts.join(" | ")));
+        }
+        lines.push("END:VEVENT");
+      });
+    });
+    lines.push("END:VCALENDAR");
+
+    if (count === 0){
+      alert("Không có ca nào sắp tới (từ hôm nay) để thêm vào lịch.");
+      return;
+    }
+
+    var icsContent = lines.join("\r\n");
+    var blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "Lich_truc_" + name.replace(/\s+/g,"_") + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+
+  // ---------- Excel export ----------
+  function exportExcel(name, rows, groups, matesLabel){
+    if (!groups){
+      // build groups from rows for filter export
+      groups = [];
+      var byKey = {};
+      (rows||[]).forEach(function(r){
+        var key = r.dateStr+"|"+r.year;
+        if (!byKey[key]){ byKey[key] = { dateStr:r.dateStr, weekday:r.weekday, year:r.year, items:[] }; groups.push(byKey[key]); }
+        byKey[key].items.push(r);
+      });
+    }
+    if (typeof XLSX === "undefined"){
+      alert("Chưa tải được thư viện xuất Excel, vui lòng thử lại sau.");
+      return;
+    }
+    var label = matesLabel || "Cùng ca";
+    var data = [["Ngày","Thứ","Loại","Brand","Nền tảng/Type","Bắt đầu","Kết thúc","Địa điểm",label,"Ghi chú"]];
+    groups.forEach(function(g){
+      g.items.forEach(function(r){
+        if (r._kind==='off' || r._kind==='phep'){
+          data.push([g.dateStr, translateWeekday(g.weekday), r._kind==='phep'?"Phép năm":"Ngày nghỉ","","","","","","",""]);
+        } else {
+          var mates = r.operators.filter(function(n){ return n!==name; }).join(", ");
+          data.push([g.dateStr, translateWeekday(g.weekday), "Ca làm", r.brand, platformTag(r), r.start, r.end, r.location, mates, r.note]);
+        }
+      });
+    });
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:7},{wch:9},{wch:8},{wch:18},{wch:14},{wch:8},{wch:8},{wch:12},{wch:20},{wch:28}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lich");
+    XLSX.writeFile(wb, "Lich_truc_" + name.replace(/\s+/g,'_') + ".xlsx");
+  }
+
+  // ---------- Settings ----------
+  function renderTabsList(){
+    var box = document.getElementById("tabsList");
+    if (state.tabs.length === 0){
+      box.innerHTML = '<div class="help-text">Chưa có tab nào.</div>';
+      return;
+    }
+    box.innerHTML = state.tabs.map(function(t,i){
+      return '<div class="tab-row"><div class="tinfo"><div class="tname">'+escapeHtml(t.label)+'</div><div class="tgid">gid='+escapeHtml(t.gid)+' · năm '+t.year+'</div></div>' +
+        (state.tabs.length>1 ? '<button class="rm" data-idx="'+i+'">✕</button>' : '') +
+        '</div>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".rm"), function(btn){
+      btn.onclick = function(){
+        var idx = parseInt(btn.getAttribute("data-idx"),10);
+        state.tabs.splice(idx,1);
+        persistTabs();
+        renderTabsList();
+        loadAllTabs();
+      };
+    });
+  }
+  function persistTabs(){ storageSet(STORAGE_KEYS.tabs, JSON.stringify(state.tabs)); }
+
+  function openSettings(){
+    renderTabsList();
+    document.getElementById("settingsOverlay").classList.add("show");
+  }
+  function closeSettings(){ document.getElementById("settingsOverlay").classList.remove("show"); }
+
+  document.getElementById("settingsBtn").onclick = openSettings;
+  document.getElementById("closeSettings").onclick = closeSettings;
+  document.getElementById("settingsOverlay").addEventListener("click", function(e){
+    if (e.target.id === "settingsOverlay") closeSettings();
+  });
+  document.getElementById("refreshBtn").onclick = function(){ loadAllTabs(); };
+
+  document.getElementById("addTabBtn").onclick = function(){
+    var urlInput = document.getElementById("newTabUrl");
+    var labelInput = document.getElementById("newTabLabel");
+    var gid = extractGid(urlInput.value);
+    if (!gid){
+      alert("Không tìm thấy gid trong link. Hãy dán link đầy đủ của tab đó (có dạng ...#gid=123456).");
+      return;
+    }
+    if (state.tabs.some(function(t){ return t.gid === gid; })){
+      alert("Tab này đã có trong danh sách rồi.");
+      return;
+    }
+    var label = labelInput.value.trim() || ("Tab " + gid);
+    state.tabs.push({ label: label, gid: gid, year: 2026 });
+    persistTabs();
+    urlInput.value=""; labelInput.value="";
+    renderTabsList();
+    closeSettings();
+    loadAllTabs();
+  };
+
+  document.getElementById("resetSelectionBtn").onclick = function(){
+    state.selectedName = null;
+    storageSet(STORAGE_KEYS.selectedName, "");
+    closeSettings();
+    renderPicker();
+    renderSummary();
+    renderContent();
+  };
+
+  // ---------- init ----------
+  function init(){
+    Promise.all([
+      storageGet(STORAGE_KEYS.tabs),
+      storageGet(STORAGE_KEYS.selectedName)
+    ]).then(function(results){
+      var savedTabs = results[0];
+      var savedName = results[1];
+      try{
+        state.tabs = savedTabs ? JSON.parse(savedTabs) : DEFAULT_TABS.slice();
+        if (!Array.isArray(state.tabs) || state.tabs.length===0) state.tabs = DEFAULT_TABS.slice();
+      } catch(e){ state.tabs = DEFAULT_TABS.slice(); }
+      state.selectedName = savedName || null;
+      state.autoRestored = !!savedName;  // flag: đã restore từ storage, chưa user bấm lại
+      renderPicker();
+      renderSummary();
+      loadAllTabs();
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
